@@ -23,6 +23,7 @@
             z-index: 1;  /* Ensure SVG is in front of images */
         }
     </style>
+    <div id="climbName"></div>
 </head>
 <body>
     <div id="graphContainer">
@@ -33,6 +34,7 @@
     <button onclick="navigate('previous')">Previous</button>
     <button onclick="navigate('next')">Next</button>
     <button id="toggleConnectMode">Connect Nodes</button>
+    <button id="clearEdgesButton">Clear Edges</button>
     <button id="drawGraphButton" onclick="fetchGraphData()">Draw Graph</button>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="/static/script.js"></script>
