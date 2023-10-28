@@ -23,19 +23,21 @@
             z-index: 1;  /* Ensure SVG is in front of images */
         }
     </style>
-    <div id="climbName"></div>
 </head>
 <body>
-    <div id="graphContainer">
-        <img src="/static/images/kilter_large_holds.png" id="wallImage1" alt="Climbing Wall 1">
-        <img src="/static/images/kilter_small_holds.png" id="wallImage2" alt="Climbing Wall 2">
-        <svg width="1080" height="1170"></svg>
-    </div>
+    <div id="climbName"></div>
     <button onclick="navigate('previous')">Previous</button>
     <button onclick="navigate('next')">Next</button>
     <button id="toggleConnectMode">Connect Nodes</button>
     <button id="clearEdgesButton">Clear Edges</button>
     <button id="drawGraphButton" onclick="fetchGraphData()">Draw Graph</button>
+    <div id="graphContainer">
+        <img src="/static/images/kilter_large_holds.png" id="wallImage1" alt="Climbing Wall 1">
+        <img src="/static/images/kilter_small_holds.png" id="wallImage2" alt="Climbing Wall 2">
+        <svg width="1080" height="1170"></svg>
+    </div>
+    <a id="climbNameLink">View More Details</a>  <!-- Placeholder for Climb Name Link -->
+
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="/static/script.js"></script>
 </body>

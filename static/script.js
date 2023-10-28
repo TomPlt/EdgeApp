@@ -140,19 +140,30 @@ function fetchGraphData() {
             drawGraph(data);
             fetchEdgesData();
             displayEdges(graphData.edges);
-            fetchClimbName();
+            current_graph_index = data.graph_index;
+            fetchClimbName(current_graph_index);
+        });
+}
+
+function fetchClimbName(current_graph_index) {
+    fetch('/climbName/' + current_graph_index)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("climbName").textContent = `Current Climb: ${data.climb_name} (No. ${current_graph_index})`;
+            const linksElement = document.getElementById("climbNameLink");
+            linksElement.innerHTML = '';
+            data.links.forEach(link => {
+                const linkElement = document.createElement("a");
+                linkElement.href = link.replace(/'/g, ''); // Remove single quotes if present
+                linkElement.textContent = link.replace(/'/g, ''); // Remove single quotes for display
+                linkElement.target = "_blank"; // Open in new tab
+                linksElement.appendChild(linkElement);
+                linksElement.appendChild(document.createElement("br")); // Line break for each link
+            });
         });
 }
 
 
-function fetchClimbName() {
-    fetch('/climbName/' + current_graph_index) // Replace '/climbName/' with the actual route in your Flask app
-        .then(response => response.text())
-        .then(climbName => {
-            // Update the climb name element with the fetched climb name
-            document.getElementById("climbName").textContent = "Current Climb: " + climbName;
-        });
-};
 
 function drawGraph(data) {
     const svg = d3.select("svg");
@@ -269,5 +280,5 @@ function navigate(direction) {
         edges = [];
     }
 
-
+fetchGraphData();
 fetchClimbName();

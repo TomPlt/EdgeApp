@@ -101,25 +101,50 @@ def graphs_no_edges(index: int):
 def get_climb_name(index, df_climbs, df_train):
     return df_climbs.loc[df_climbs.uuid == df_train.uuid[index]]['name'].values[0]
 
+def fetch_largest_graph_index_with_edges():
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT MAX(graph_index) FROM edges")
+    largest_index = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    return largest_index if largest_index is not None else 0
+
+
+def get_links_climb(name, df_links):
+    return str(df_links.loc[df_links.name == name]['links'].values).split(',')
+
 app = Flask(__name__)
 
 # Load data outside of routes to minimize overhead
 df_climbs = pd.read_csv('../kilter/data/csvs/climbs.csv')
 df_train = pd.read_csv('../kilter/data/csvs/train.csv')
 df_nodes = pd.read_csv('../kilter/data/csvs/nodes.csv')
-current_graph_index = 0
-print(df_climbs.head())
-# other functions remain the same...
+df_links = pd.read_csv('../kilter/data/csvs/grouped_instagram_links.csv')
+current_graph_index = fetch_largest_graph_index_with_edges()
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+from flask import jsonify
+
 @app.route('/climbName/<int:index>', methods=['GET'])
 def climbName(index):
     # Use the get_climb_name function to fetch the climb name for the given index
     climb_name = get_climb_name(index, df_climbs, df_train)
-    return climb_name
+    climb_links = get_links_climb(climb_name, df_links)
+    print(len(climb_links))
+    
+    # Combine climb name and links into a dictionary and return as JSON
+    response = {
+        'climb_name': climb_name,
+        'links': climb_links
+    }
+    return jsonify(response)
+
 
 @app.route('/graph', methods=['GET'])
 def get_graph():
@@ -127,7 +152,7 @@ def get_graph():
     graph_data = graphs_no_edges(current_graph_index)
     nodes = [{"id": node, "data": data} for node, data in graph_data.nodes(data=True)]
     edges = [{"source": source, "target": target} for source, target in graph_data.edges()]
-    return jsonify({"nodes": nodes, "edges": edges})
+    return jsonify({"nodes": nodes, "edges": edges, "graph_index": current_graph_index})
 
 # adding a route which increments the graph index
 @app.route('/next', methods=['GET'])
