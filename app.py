@@ -7,6 +7,7 @@ from networkx.readwrite import json_graph
 import logging
 logging.basicConfig(level=logging.INFO)
 import sqlite3
+import ast 
 
 DATABASE_FILE = 'edges.db'
 
@@ -114,9 +115,19 @@ def fetch_largest_graph_index_with_edges():
 
 
 def get_links_climb(name, df_links):
-    return str(df_links.loc[df_links.name == name]['links'].values).split(',')
+    raw_data = df_links.loc[df_links.name == name]['links'].values
+    if not raw_data:
+        return []
+    str_data = str(raw_data[0])
+    clean_links = str_data.replace("[", "").replace("]", "").replace("\'", "").split(',')
+    
+    return [link.strip() for link in clean_links]
+
 
 app = Flask(__name__)
+# add CORS support
+from flask_cors import CORS
+CORS(app)
 
 # Load data outside of routes to minimize overhead
 df_climbs = pd.read_csv('../kilter/data/csvs/climbs.csv')
@@ -136,6 +147,7 @@ def climbName(index):
     # Use the get_climb_name function to fetch the climb name for the given index
     climb_name = get_climb_name(index, df_climbs, df_train)
     climb_links = get_links_climb(climb_name, df_links)
+    print(climb_links)
     print(len(climb_links))
     
     # Combine climb name and links into a dictionary and return as JSON

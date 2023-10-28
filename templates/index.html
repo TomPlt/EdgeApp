@@ -1,29 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Graph Editor</title>
     <style>
+        #mainContainer {
+            display: flex;
+        }
+
         #graphContainer {
             position: relative;
             width: 800px;
             height: 800px;
         }
-        
-        #wallImage1, #wallImage2, svg {
+
+        #wallImage1,
+        #wallImage2,
+        svg {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 0;  /* Ensure images are behind SVG */
+            z-index: 0;
         }
-        
+
         svg {
-            z-index: 1;  /* Ensure SVG is in front of images */
+            z-index: 1;
+        }
+
+        #climbNameLink {
+            margin-left: 20px;  /* Adds some spacing between the graph and the link */
+            align-self: center;  /* Vertically centers the link beside the graph container */
         }
     </style>
 </head>
+
 <body>
     <div id="climbName"></div>
     <button onclick="navigate('previous')">Previous</button>
@@ -31,14 +44,18 @@
     <button id="toggleConnectMode">Connect Nodes</button>
     <button id="clearEdgesButton">Clear Edges</button>
     <button id="drawGraphButton" onclick="fetchGraphData()">Draw Graph</button>
-    <div id="graphContainer">
-        <img src="/static/images/kilter_large_holds.png" id="wallImage1" alt="Climbing Wall 1">
-        <img src="/static/images/kilter_small_holds.png" id="wallImage2" alt="Climbing Wall 2">
-        <svg width="1080" height="1170"></svg>
+    
+    <div id="mainContainer">
+        <div id="graphContainer">
+            <img src="/static/images/kilter_large_holds.png" id="wallImage1" alt="Climbing Wall 1">
+            <img src="/static/images/kilter_small_holds.png" id="wallImage2" alt="Climbing Wall 2">
+            <svg width="1080" height="1170"></svg>
+        </div>
+        <a id="climbNameLink">View More Details</a>
     </div>
-    <a id="climbNameLink">View More Details</a>  <!-- Placeholder for Climb Name Link -->
 
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="/static/script.js"></script>
 </body>
+
 </html>

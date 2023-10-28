@@ -94,7 +94,7 @@ function dragended(d) {
 
     // Use graphData instead of data
     const targetNode = graphData.nodes.find(n => {
-        return Math.sqrt((xScale(n.data.coordinates[0]) - d3.event.x) ** 2 + (yScale(n.data.coordinates[1]) - d3.event.y) ** 2) < 10;
+        return Math.sqrt((xScale(n.data.coordinates[0]) - d3.event.x) ** 2 + (yScale(n.data.coordinates[1]) - d3.event.y) ** 2) < 20;
     });
 
     if (targetNode && targetNode !== sourceNode) {
@@ -152,13 +152,28 @@ function fetchClimbName(current_graph_index) {
             document.getElementById("climbName").textContent = `Current Climb: ${data.climb_name} (No. ${current_graph_index})`;
             const linksElement = document.getElementById("climbNameLink");
             linksElement.innerHTML = '';
+            
             data.links.forEach(link => {
-                const linkElement = document.createElement("a");
-                linkElement.href = link.replace(/'/g, ''); // Remove single quotes if present
-                linkElement.textContent = link.replace(/'/g, ''); // Remove single quotes for display
-                linkElement.target = "_blank"; // Open in new tab
-                linksElement.appendChild(linkElement);
-                linksElement.appendChild(document.createElement("br")); // Line break for each link
+                const cleanLink = link.replace(/'/g, ''); // Remove single quotes if present
+                console.log("Clean link: ", cleanLink);
+
+                if (cleanLink.includes("instagram.com")) {
+                    const iframe = document.createElement("iframe");
+                    iframe.width = "400"; // Width of the video frame, adjust as needed
+                    iframe.height = "400"; // Height of the video frame, adjust as needed
+                    iframe.frameBorder = "0";
+                    iframe.allow = "autoplay; encrypted-media";
+                    iframe.allowFullScreen = true;
+                    iframe.src = `${cleanLink.replace(/\/+$/, "")}/embed/`;
+                    linksElement.appendChild(iframe);
+                } else {
+                    const linkElement = document.createElement("a");
+                    linkElement.href = cleanLink;
+                    linkElement.textContent = cleanLink;
+                    linkElement.target = "_blank"; // Open in new tab
+                    linksElement.appendChild(linkElement);
+                }
+                linksElement.appendChild(document.createElement("br")); // Line break for each link or iframe
             });
         });
 }
