@@ -66,6 +66,21 @@ def save_to_database(edges, current_graph_index):
     conn.commit()
     conn.close()
 
+def get_all_edges_from_database():
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+
+    # Fetch edges for the current graph_index
+    cursor.execute("SELECT start_node, end_node FROM edges")
+    edges_data = cursor.fetchall()
+
+    conn.close()
+    
+    # Convert the fetched data into a list of tuples
+    edges = [(edge[0], edge[1]) for edge in edges_data]
+
+    return edges
+
 def get_edges_from_database(current_graph_index):
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
@@ -92,7 +107,6 @@ def graphs_no_edges(index: int):
     coord_dict = {node_id: coord for node_id, coord in zip(nodes, coordinates)}
 
     G = nx.Graph()  # Initialize an empty (un-directed) graph
-    
     # Adding nodes
     for i, node_id in enumerate(nodes):
         node_features = df_nodes.loc[node_id].to_dict()
@@ -146,10 +160,7 @@ from flask import jsonify
 def climbName(index):
     # Use the get_climb_name function to fetch the climb name for the given index
     climb_name = get_climb_name(index, df_climbs, df_train)
-    climb_links = get_links_climb(climb_name, df_links)
-    print(climb_links)
-    print(len(climb_links))
-    
+    climb_links = get_links_climb(climb_name, df_links)   
     # Combine climb name and links into a dictionary and return as JSON
     response = {
         'climb_name': climb_name,
@@ -164,6 +175,7 @@ def get_graph():
     graph_data = graphs_no_edges(current_graph_index)
     nodes = [{"id": node, "data": data} for node, data in graph_data.nodes(data=True)]
     edges = [{"source": source, "target": target} for source, target in graph_data.edges()]
+    print(edges)
     return jsonify({"nodes": nodes, "edges": edges, "graph_index": current_graph_index})
 
 # adding a route which increments the graph index
@@ -182,7 +194,14 @@ def previous_graph():
 @app.route('/getEdges', methods=['GET'])
 def get_edges():
     global current_graph_index
+    graph_data = graphs_no_edges(current_graph_index)
     edges_data = get_edges_from_database(current_graph_index) # Implement a function to get edges from your database
+    # print(edges_data)
+    # if edges_data == []:
+    #     edges = get_all_edges_from_database()
+    #     for edge in edges:
+    #         if edge[0] in graph_data.nodes() and edge[1] in graph_data.nodes():
+    #             edges_data.append(edge)
     return jsonify({"edges": edges_data})
 
 @app.route('/deleteAllEdges', methods=['DELETE'])
