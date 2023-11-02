@@ -294,6 +294,16 @@ function navigate(direction) {
         });
         edges = [];
     }
-
+    window.addEventListener('wheel', event => {
+        console.log("Wheel event: ", event);
+        if (event.deltaX === 0 && event.deltaZ === 0) {
+            if (event.deltaY > 0) {
+                navigate('next');
+            } else if (event.deltaY < 0) {
+                navigate('previous');
+            } 
+        }
+    });
+    
 fetchGraphData();
 fetchClimbName();
