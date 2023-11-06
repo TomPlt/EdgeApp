@@ -141,10 +141,11 @@ def fetch_next_none_edge_graph_index():
     cursor = conn.cursor()
     
     cursor.execute("SELECT graph_index FROM edges WHERE edge_index IS NULL LIMIT 1")
-    next_index = cursor.fetchone()[0]
+    next_index = cursor.fetchone()
     
     conn.close()
-    return next_index
+    return next_index[0] if next_index else None
+
 
 def fetch_largest_graph_index_with_edges():
     conn = sqlite3.connect(DATABASE_FILE)
@@ -154,7 +155,7 @@ def fetch_largest_graph_index_with_edges():
     largest_index = cursor.fetchone()[0]
     
     conn.close()
-    return 800
+    return 980
     return largest_index if largest_index is not None else 0
 
 
@@ -178,7 +179,7 @@ df_climbs = pd.read_csv('../kilter/data/csvs/climbs.csv')
 df_train = pd.read_csv('../kilter/data/csvs/train.csv')
 df_nodes = pd.read_csv('../kilter/data/csvs/nodes.csv')
 df_links = pd.read_csv('../kilter/data/csvs/grouped_instagram_links.csv')
-current_graph_index = fetch_next_none_edge_graph_index()
+current_graph_index = fetch_largest_graph_index_with_edges()
 
 @app.route('/')
 def index():
