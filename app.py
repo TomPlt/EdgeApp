@@ -11,6 +11,7 @@ import ast
 
 DATABASE_FILE = 'edges.db'
 
+
 def create_edges_table_if_not_exists():
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
@@ -37,32 +38,51 @@ def create_edges_table_if_not_exists():
     conn.commit()
     conn.close()
 
+def add_edge_index_column():
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+
+    # Check if edge_index column already exists
+    cursor.execute("PRAGMA table_info(edges);")
+    columns = [info[1] for info in cursor.fetchall()]
+    if 'edge_index' not in columns:
+        cursor.execute('ALTER TABLE edges ADD COLUMN edge_index INTEGER DEFAULT NULL;')
+        conn.commit()
+
+    conn.close()
+
 def save_to_database(edges, current_graph_index):
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
-    create_edges_table_if_not_exists()
 
-    # Convert the list of lists into a list of tuples
-    edges_tuples = [(edge[0], edge[1]) for edge in edges]
+    for edge in edges:
+        start_node = edge['source']
+        end_node = edge['target']
+        edge_index = edge.get('index', None)  # Get the 'index' key from the edge, default to None if not present
+        
+        # Retrieve the name for the current_graph_index
+        name = get_climb_name(current_graph_index, df_climbs, df_train)
 
-    # Fetch the existing edges for the current graph index
-    cursor.execute("SELECT start_node, end_node FROM edges WHERE graph_index = ?", (current_graph_index,))
-    existing_edges = cursor.fetchall()
-    existing_edges_set = set(existing_edges)
-
-    df_train = pd.read_csv('../kilter/data/csvs/train.csv')
-    df_nodes = pd.read_csv('../kilter/data/csvs/nodes.csv')
-    
-    for edge in edges_tuples:
-        # Create or update the edge
-        climb_name = get_climb_name(current_graph_index, df_climbs, df_train)
-
-        # Using SQL's INSERT OR REPLACE to upsert
+        # Check if the edge (start_node, end_node) for the specific graph index already exists in the database
         cursor.execute("""
-            INSERT OR REPLACE INTO edges (start_node, end_node, name, graph_index)
-            VALUES (?, ?, ?, ?)
-        """, (edge[0], edge[1], climb_name, current_graph_index))
+            SELECT COUNT(*) FROM edges
+            WHERE start_node = ? AND end_node = ? AND graph_index = ?
+        """, (start_node, end_node, current_graph_index))
+        count = cursor.fetchone()[0]
 
+        if count == 0:
+            # Edge does not exist in the database for the specific graph index, so insert it
+            cursor.execute("""
+                INSERT INTO edges (start_node, end_node, name, graph_index, edge_index)
+                VALUES (?, ?, ?, ?, ?)
+            """, (start_node, end_node, name, current_graph_index, edge_index))
+        else:
+            # Edge already exists in the database, so update the edge_index
+            cursor.execute("""
+                UPDATE edges
+                SET edge_index = ?
+                WHERE start_node = ? AND end_node = ? AND graph_index = ?
+            """, (edge_index, start_node, end_node, current_graph_index))
     conn.commit()
     conn.close()
 
@@ -86,13 +106,13 @@ def get_edges_from_database(current_graph_index):
     cursor = conn.cursor()
 
     # Fetch edges for the current graph_index
-    cursor.execute("SELECT start_node, end_node FROM edges WHERE graph_index = ?", (current_graph_index,))
+    cursor.execute("SELECT start_node, end_node, edge_index FROM edges WHERE graph_index = ?", (current_graph_index,))
     edges_data = cursor.fetchall()
 
     conn.close()
     
     # Convert the fetched data into a list of tuples
-    edges = [(edge[0], edge[1]) for edge in edges_data]
+    edges = [(edge[0], edge[1], edge[2]) for edge in edges_data]
 
     return edges
 
@@ -124,7 +144,7 @@ def fetch_largest_graph_index_with_edges():
     largest_index = cursor.fetchone()[0]
     
     conn.close()
-    
+    return 500
     return largest_index if largest_index is not None else 0
 
 
@@ -172,10 +192,10 @@ def climbName(index):
 @app.route('/graph', methods=['GET'])
 def get_graph():
     global current_graph_index
+    print(current_graph_index)
     graph_data = graphs_no_edges(current_graph_index)
     nodes = [{"id": node, "data": data} for node, data in graph_data.nodes(data=True)]
     edges = [{"source": source, "target": target} for source, target in graph_data.edges()]
-    print(edges)
     return jsonify({"nodes": nodes, "edges": edges, "graph_index": current_graph_index})
 
 # adding a route which increments the graph index
@@ -194,8 +214,10 @@ def previous_graph():
 @app.route('/getEdges', methods=['GET'])
 def get_edges():
     global current_graph_index
+    print(current_graph_index)
     graph_data = graphs_no_edges(current_graph_index)
     edges_data = get_edges_from_database(current_graph_index) # Implement a function to get edges from your database
+    print(edges_data)
     # print(edges_data)
     # if edges_data == []:
     #     edges = get_all_edges_from_database()

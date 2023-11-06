@@ -19,6 +19,7 @@ let isConnectMode = false;
 let graphData;
 let edges = [];
 let current_graph_index = 0;
+let edgeIndex = 0;
 
 // Define the arrowhead marker in the SVG defs section
 const svg = d3.select("svg");
@@ -59,6 +60,7 @@ document.getElementById("clearEdgesButton").addEventListener('click', () => {
 
 function clearEdges() {
     edges = []; // Clear the edges array
+    graphData.edges = []; // Clear the edges in the graph data
     d3.selectAll("line").remove(); // Remove all edge lines
 }
 
@@ -115,31 +117,67 @@ function dragended(d) {
 }
 
 function fetchEdgesData() {
-    fetch('/getEdges')
+    return fetch('/getEdges')
         .then(response => response.json())
         .then(data => {
             // Transform the data to match the expected format
-            const transformedEdges = data.edges.map(edge => ({
+            return data.edges.map(edge => ({
                 source: edge[0], // Extract source from the tuple
-                target: edge[1]  // Extract target from the tuple
+                target: edge[1], // Extract target from the tuple
+                index: edge[2]   // Extract index from the tuple
             }));
-
-            // Call the function to display edges with the transformed data
-            displayEdges(transformedEdges);
         });
-};
+}
 
+function updateGraphDataEdges() {
+    fetchEdgesData().then(edges => {
+        graphData.edges = edges;
+        displayEdges(edges); // Redraw edges with the new data
+        // Additional logic to handle the updated edges if necessary
+    });
+}
+
+function updatenewGraphDataEdges() {
+    // Find edges that are present in graphData.edges and update their index if needed
+    const updatedGraphDataEdges = graphData.edges.map(graphEdge => {
+        const matchingDrawnEdge = edges.find(
+            drawnEdge =>
+                drawnEdge.source === graphEdge.source &&
+                drawnEdge.target === graphEdge.target
+        );
+        // If a matching edge is found and it has an index, update the graphEdge with that index
+        if (matchingDrawnEdge && 'index' in matchingDrawnEdge) {
+            return {
+                source: matchingDrawnEdge.source,
+                target: matchingDrawnEdge.target,
+                index: matchingDrawnEdge.index
+            };
+        }
+        return graphEdge;
+    });
+
+    // Find new edges that are not in graphData.edges and add them
+    const newEdges = edges.map(drawnEdge => ({
+        source: drawnEdge[0], // Assuming drawnEdge is in the format [sourceNodeId, targetNodeId]
+        target: drawnEdge[1]
+    })).filter(drawnEdge =>
+        !graphData.edges.some(
+            graphEdge =>
+                graphEdge.source === drawnEdge.source &&
+                graphEdge.target === drawnEdge.target
+        )
+    );
+
+    // Combine the updated existing edges with the new edges
+    graphData.edges = [...updatedGraphDataEdges, ...newEdges];
+}
 function fetchGraphData() {
-    // Clear the edges array and remove existing edge lines
-    // clearEdges();
-
     fetch('/graph')
         .then(response => response.json())
         .then(data => {
             graphData = data;
             drawGraph(data);
-            fetchEdgesData();
-            displayEdges(graphData.edges);
+            updateGraphDataEdges(); // Make sure to call this instead of displayEdges directly
             current_graph_index = data.graph_index;
             fetchClimbName(current_graph_index);
         });
@@ -155,7 +193,7 @@ function fetchClimbName(current_graph_index) {
             
             data.links.forEach(link => {
                 const cleanLink = link.replace(/'/g, ''); // Remove single quotes if present
-                console.log("Clean link: ", cleanLink);
+                // console.log("Clean link: ", cleanLink);
 
                 if (cleanLink.includes("instagram.com")) {
                     const iframe = document.createElement("iframe");
@@ -214,11 +252,13 @@ function displayEdges(edges) {
         .attr("refX", 6) // x-coordinate at the tip of the arrow
         .attr("refY", 3) // y-coordinate at the tip of the arrow
         .attr("markerWidth", 10) // marker width
-        .attr("markerHeight", 6) // marker height
+        .attr("markerHeight", 7) // marker height
         .attr("orient", "auto")
         .append("path")
         .attr("d", "M0,0 L0,6 L9,3 z") // Arrowhead path
-        .style("fill", "black"); // Arrowhead color
+        // .style("fill", "black"); // Arrowhead color
+        .style("fill", "transparent"); // Make the arrowhead completely transparent
+
 
     const edgeGroup = svg.append("g").attr("class", "edges"); // Create a group for edges
 
@@ -248,62 +288,105 @@ function displayEdges(edges) {
             const targetNode = graphData.nodes.find(node => node.id === d.target);
             return yScale(targetNode.data.coordinates[1]);
         })
-        .attr("stroke", "black")
-        .attr("stroke-width", 2)
-        .attr("marker-end", "url(#arrowhead)"); // Add arrowhead marker
+        .attr("stroke", "rgba(0, 0, 0, 0.5)") // Semi-transparent black
+        .attr("stroke-width", 20) // Increased line width
+        .attr("marker-end", "url(#arrowhead)") // Add arrowhead marker
+        .classed("edge", true) // Add class for styling if needed
+        .style("cursor", "pointer") // Change cursor style to indicate interactivity
+        .on("mouseover", function () {
+            // Highlight the edge on hover
+            d3.select(this).attr("stroke", "rgba(255, 0, 0, 0.7)"); // Red and semi-transparent
+        })
+        .on("mouseout", function () {
+            // Restore the original stroke color on mouseout
+            d3.select(this).attr("stroke", "rgba(0, 0, 0, 0.5)"); // Semi-transparent black
+        })
+        .on("click", edgeClicked); // Add click handler for edges
 
     // Additional code to customize the appearance of the edges as needed
     // You can style and customize the edges based on your requirements
 }
 
+function edgeClicked(d, i) {
+    // Add the edge index to the edge data
+    d.index = edgeIndex++;
+
+    // You can store the edge index in the DOM, or keep it in a separate data structure
+    d3.select(this).attr("data-index", d.index);
+    const sourceNode = graphData.nodes.find(node => node.id === d.source);
+    const targetNode = graphData.nodes.find(node => node.id === d.target);
+    
+    let xMid, yMid;
+    if (sourceNode && targetNode) {
+        xMid = (xScale(sourceNode.data.coordinates[0]) + xScale(targetNode.data.coordinates[0])) / 2;
+        yMid = (yScale(sourceNode.data.coordinates[1]) + yScale(targetNode.data.coordinates[1])) / 2;
+    }
+    
+    d3.select(this.parentNode) // Assuming 'this' is the line inside a 'g' group
+        .append("text")
+        .attr("x", xMid)
+        .attr("y", yMid)
+        .text(d.index)
+        .attr("fill", "red") // Change text color if needed
+        .attr("font-size", "14px") // Adjust font size as needed
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "central");
+
+        d3.select(this).attr("data-index", edgeIndex - 1);
+        console.log("Edge clicked: ", d);
+}
 function navigate(direction) {
     console.log("Graph data edges: ", graphData.edges);
-    console.log("Edges before sending to backend: ", edges);
-    
-
-    // Send edges to the backend
+    console.log("Edges: ", edges);
+    updatenewGraphDataEdges();
+    console.log("Graph data edges: ", graphData.edges);
+    // Use `graphData.edges` to send to the backend instead of `edges`
     fetch('/saveEdges', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(edges),
+        // Make sure to reference `graphData.edges` here
+        body: JSON.stringify(graphData.edges),
     })
-        .then(response => {
-            if (response.ok) {
-                // Increment or decrement the current_graph_index based on direction
-                if (direction === 'next') {
-                    current_graph_index++;
-                } else if (direction === 'previous') {
-                    current_graph_index--;
-                }
-                // Continue with the navigation logic
-                return fetch('/' + direction);
-            } else {
-                throw new Error("Failed to save edges");
+    .then(response => {
+        if (response.ok) {
+            // Increment or decrement the current_graph_index based on direction
+            if (direction === 'next') {
+                current_graph_index++;
+            } else if (direction === 'previous') {
+                current_graph_index--;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                fetchGraphData();  // Already fetching graph data here
-            }
-        })
-        .catch(error => {
-            console.error("Error:", error);
-        });
-        edges = [];
-    }
-    window.addEventListener('wheel', event => {
-        console.log("Wheel event: ", event);
-        if (event.deltaX === 0 && event.deltaZ === 0) {
-            if (event.deltaY > 0) {
-                navigate('next');
-            } else if (event.deltaY < 0) {
-                navigate('previous');
-            } 
+            // Continue with the navigation logic
+            return fetch('/' + direction);
+        } else {
+            throw new Error("Failed to save edges");
         }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fetchGraphData();  // This function should handle updating the graph
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
     });
-    
+    edgeIndex = 0;
+    edges = [];
+}
+// Listen for keyboard events
+document.addEventListener('keydown', (event) => {
+    // Check if the event key is 'w' (for next) or 'a' (for previous)
+    if (event.key === 'w') {
+        // Navigate to the next page here
+        navigate('next');
+    } else if (event.key === 'a') {
+        // Navigate to the previous page here
+        navigate('previous');
+    }
+});
+
+
 fetchGraphData();
 fetchClimbName();
