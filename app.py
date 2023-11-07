@@ -155,7 +155,7 @@ def fetch_largest_graph_index_with_edges():
     largest_index = cursor.fetchone()[0]
     
     conn.close()
-    return 980
+    return 1000
     return largest_index if largest_index is not None else 0
 
 

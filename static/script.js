@@ -80,8 +80,8 @@ function dragstarted(d) {
         .attr("y1", startingY)
         .attr("x2", startingX)
         .attr("y2", startingY)
-        .attr("stroke", "black")
-        .attr("stroke-width", 2)
+        .attr("stroke", "rgba(0, 0, 0, 0.7)")
+        .attr("stroke-width", 20)
         .attr("marker-end", "url(#arrowhead)"); // Add arrowhead marker
 }
 
@@ -107,7 +107,7 @@ function dragended(d) {
             .attr("x2", xScale(targetNode.data.coordinates[0]))
             .attr("y2", yScale(targetNode.data.coordinates[1]))
             .attr("stroke", "black")
-            .attr("stroke-width", 2)
+            .attr("stroke-width", 10)
             .attr("marker-end", "url(#arrowhead)"); // Add arrowhead marker
     }
 
@@ -289,7 +289,7 @@ function displayEdges(edges) {
             return yScale(targetNode.data.coordinates[1]);
         })
         .attr("stroke", "rgba(0, 0, 0, 0.5)") // Semi-transparent black
-        .attr("stroke-width", 20) // Increased line width
+        .attr("stroke-width", 30) // Increased line width
         .attr("marker-end", "url(#arrowhead)") // Add arrowhead marker
         .classed("edge", true) // Add class for styling if needed
         .style("cursor", "pointer") // Change cursor style to indicate interactivity
@@ -328,7 +328,7 @@ function edgeClicked(d, i) {
         .attr("y", yMid)
         .text(d.index)
         .attr("fill", "red") // Change text color if needed
-        .attr("font-size", "14px") // Adjust font size as needed
+        .attr("font-size", "25px") // Adjust font size as needed
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "central");
 
