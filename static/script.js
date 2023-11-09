@@ -62,6 +62,7 @@ function clearEdges() {
     edges = []; // Clear the edges array
     graphData.edges = []; // Clear the edges in the graph data
     d3.selectAll("line").remove(); // Remove all edge lines
+    edgeIndex = 0; // Reset edge index
 }
 
 let line = null;
@@ -81,7 +82,7 @@ function dragstarted(d) {
         .attr("x2", startingX)
         .attr("y2", startingY)
         .attr("stroke", "rgba(0, 0, 0, 0.7)")
-        .attr("stroke-width", 20)
+        .attr("stroke-width", 7)
         .attr("marker-end", "url(#arrowhead)"); // Add arrowhead marker
 }
 
@@ -94,26 +95,30 @@ function dragged(d) {
 function dragended(d) {
     if (!line || !sourceNode) return;
 
-    // Use graphData instead of data
     const targetNode = graphData.nodes.find(n => {
         return Math.sqrt((xScale(n.data.coordinates[0]) - d3.event.x) ** 2 + (yScale(n.data.coordinates[1]) - d3.event.y) ** 2) < 20;
     });
 
     if (targetNode && targetNode !== sourceNode) {
-        edges.push([sourceNode.id, targetNode.id]);
+        // Add the new edge with the current edge index
+        edges.push({
+            source: sourceNode.id,
+            target: targetNode.id,
+            index: edgeIndex++ // Increment edge index after adding the edge
+        });
         d3.select("svg").append("line")
             .attr("x1", xScale(sourceNode.data.coordinates[0]))
             .attr("y1", yScale(sourceNode.data.coordinates[1]))
             .attr("x2", xScale(targetNode.data.coordinates[0]))
             .attr("y2", yScale(targetNode.data.coordinates[1]))
             .attr("stroke", "black")
-            .attr("stroke-width", 10)
+            .attr("stroke-width", 5)
             .attr("marker-end", "url(#arrowhead)"); // Add arrowhead marker
     }
-
     line.remove();
     line = null;
-    sourceNode = null;
+    sourceNode = null; 
+    console.log(`Current edges array:`, edges);
 }
 
 function fetchEdgesData() {
@@ -138,18 +143,18 @@ function updateGraphDataEdges() {
 }
 
 function updatenewGraphDataEdges() {
+    // Ensure graphData.edges is an array
+    graphData.edges = graphData.edges || [];
+
     // Find edges that are present in graphData.edges and update their index if needed
     const updatedGraphDataEdges = graphData.edges.map(graphEdge => {
-        const matchingDrawnEdge = edges.find(
-            drawnEdge =>
-                drawnEdge.source === graphEdge.source &&
-                drawnEdge.target === graphEdge.target
+        const matchingDrawnEdge = edges.find(drawnEdge =>
+            drawnEdge.source === graphEdge.source && drawnEdge.target === graphEdge.target
         );
         // If a matching edge is found and it has an index, update the graphEdge with that index
-        if (matchingDrawnEdge && 'index' in matchingDrawnEdge) {
+        if (matchingDrawnEdge && matchingDrawnEdge.hasOwnProperty('index')) {
             return {
-                source: matchingDrawnEdge.source,
-                target: matchingDrawnEdge.target,
+                ...graphEdge, // Preserve other properties
                 index: matchingDrawnEdge.index
             };
         }
@@ -157,20 +162,17 @@ function updatenewGraphDataEdges() {
     });
 
     // Find new edges that are not in graphData.edges and add them
-    const newEdges = edges.map(drawnEdge => ({
-        source: drawnEdge[0], // Assuming drawnEdge is in the format [sourceNodeId, targetNodeId]
-        target: drawnEdge[1]
-    })).filter(drawnEdge =>
-        !graphData.edges.some(
-            graphEdge =>
-                graphEdge.source === drawnEdge.source &&
-                graphEdge.target === drawnEdge.target
+    const newEdges = edges.filter(drawnEdge =>
+        !graphData.edges.some(graphEdge =>
+            (graphEdge.source === drawnEdge.source && graphEdge.target === drawnEdge.target) ||
+            (graphEdge.source === drawnEdge.target && graphEdge.target === drawnEdge.source) // For undirected graphs
         )
     );
 
     // Combine the updated existing edges with the new edges
     graphData.edges = [...updatedGraphDataEdges, ...newEdges];
 }
+
 function fetchGraphData() {
     fetch('/graph')
         .then(response => response.json())
