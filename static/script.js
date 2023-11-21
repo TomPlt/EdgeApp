@@ -120,6 +120,26 @@ function dragended(d) {
     sourceNode = null; 
     console.log(`Current edges array:`, edges);
 }
+function searchGraphs() {
+    const query = document.getElementById('searchInput').value;
+    fetch('/searchGraphs?query=' + encodeURIComponent(query))
+        .then(response => response.json())
+        .then(graphIndex => {
+            // Assuming the response is an integer (graph index)
+            displaySearchResults(graphIndex);  // Pass the graph index to the function
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function displaySearchResults(graphIndex) {
+    navigateToGraph(graphIndex);  // Call navigateToGraph with the graph index
+}
+
+function navigateToGraph(graphIndex) {
+    current_graph_index = graphIndex;  // Update the current graph index
+    fetchGraphData();  // Fetch and display the graph
+    fetchClimbName(graphIndex);  // Fetch and display the climb name
+}
 
 function fetchEdgesData() {
     return fetch('/getEdges')
@@ -377,17 +397,24 @@ function navigate(direction) {
     edgeIndex = 0;
     edges = [];
 }
-// Listen for keyboard events
-document.addEventListener('keydown', (event) => {
-    // Check if the event key is 'w' (for next) or 'a' (for previous)
-    if (event.key === 'w') {
-        // Navigate to the next page here
-        navigate('next');
-    } else if (event.key === 'a') {
-        // Navigate to the previous page here
-        navigate('previous');
+// search button press with enter key
+document.getElementById('searchInput').addEventListener('keyup', function(event) {
+    // Check if the pressed key is the Enter key
+    if (event.key === 'Enter' || event.keyCode === 13) {
+        searchGraphs(); // Call the searchGraphs function
     }
 });
+// // Listen for keyboard events
+// document.addEventListener('keydown', (event) => {
+//     // Check if the event key is 'w' (for next) or 'a' (for previous)
+//     if (event.key === 'w') {
+//         // Navigate to the next page here
+//         navigate('next');
+//     } else if (event.key === 'a') {
+//         // Navigate to the previous page here
+//         navigate('previous');
+//     }
+// });
 
 
 fetchGraphData();

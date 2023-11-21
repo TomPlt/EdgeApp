@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 import sqlite3
 import ast 
 
-DATABASE_FILE = 'edges.db'
+DATABASE_FILE = 'edges copy.db'
 
 
 def create_edges_table_if_not_exists():
@@ -146,15 +146,26 @@ def fetch_next_none_edge_graph_index():
     conn.close()
     return next_index[0] if next_index else None
 
+def search_for_graphs(query):
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT graph_index FROM edges WHERE name LIKE ?", (f"%{query}%",))
+    next_index = cursor.fetchone()
+    conn.close()
+    return next_index[0] if next_index else None
+
 
 def fetch_largest_graph_index_with_edges():
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
-    
+
     cursor.execute("SELECT MAX(graph_index) FROM edges")
     largest_index = cursor.fetchone()[0]
     
     conn.close()
+    return  3736
+
     return largest_index if largest_index is not None else 0
 
 
@@ -207,6 +218,18 @@ def get_graph():
     nodes = [{"id": node, "data": data} for node, data in graph_data.nodes(data=True)]
     edges = [{"source": source, "target": target} for source, target in graph_data.edges()]
     return jsonify({"nodes": nodes, "edges": edges, "graph_index": current_graph_index})
+@app.route('/searchGraphs', methods=['GET'])
+def search_graphs():
+    search_query = request.args.get('query')
+    global current_graph_index
+
+    print(search_query)
+    # Implement logic to search for graphs with the specified name
+    # This might involve querying your database or filtering your data
+    matching_graph = search_for_graphs(search_query)  
+    current_graph_index = matching_graph
+    print(matching_graph)
+    return jsonify({"success": True})
 
 # adding a route which increments the graph index
 @app.route('/next', methods=['GET'])
@@ -215,6 +238,7 @@ def next_graph():
     # current_graph_index = fetch_next_none_edge_graph_index()
     current_graph_index += 1
     return jsonify({"success": True})
+
 # adding a route which decrements the graph index
 @app.route('/previous', methods=['GET'])
 def previous_graph():

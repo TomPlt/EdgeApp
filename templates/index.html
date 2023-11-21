@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <title>Graph Editor</title>
     <style>
+        .search-result {
+            cursor: pointer;
+            margin: 5px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
         #mainContainer {
             display: flex;
         }
@@ -44,7 +53,11 @@
     <button id="toggleConnectMode">Connect Nodes</button>
     <button id="clearEdgesButton">Clear Edges</button>
     <button id="drawGraphButton" onclick="fetchGraphData()">Draw Graph</button>
-    
+    <div>
+        <input type="text" id="searchInput" placeholder="Enter graph name">
+        <button onclick="searchGraphs()">Search</button>
+    </div>
+    <div id="searchResults"></div>
     <div id="mainContainer">
         <div id="graphContainer">
             <img src="/static/images/kilter_large_holds.png" id="wallImage1" alt="Climbing Wall 1">
