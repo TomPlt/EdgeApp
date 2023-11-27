@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 import sqlite3
 import ast 
 
-DATABASE_FILE = 'edges copy.db'
+DATABASE_FILE = 'edges.db'
 
 
 def create_edges_table_if_not_exists():
@@ -164,7 +164,7 @@ def fetch_largest_graph_index_with_edges():
     largest_index = cursor.fetchone()[0]
     
     conn.close()
-    return  3736
+    return  3500
 
     return largest_index if largest_index is not None else 0
 
@@ -286,4 +286,4 @@ def save_edges():
     return jsonify(success=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=1111)
